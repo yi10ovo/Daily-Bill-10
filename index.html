@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Daily Bill 日常账单</title>
+  <link rel="manifest" href="manifest.json" />
+  <meta name="theme-color" content="#0d1117" />
+  <style>
+    :root { color-scheme: dark; }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0d1117;
+      color: #e6edf3;
+    }
+    .wrap { max-width: 720px; margin: 0 auto; padding: 16px; }
+    h1 { font-size: 22px; margin: 0 0 12px; }
+    .card {
+      background: #161b22;
+      border: 1px solid #30363d;
+      border-radius: 10px;
+      padding: 12px;
+      margin-bottom: 12px;
+    }
+    input, button, select {
+      font: inherit;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid #30363d;
+      background: #0d1117;
+      color: #e6edf3;
+      box-sizing: border-box;
+    }
+    .row { display: flex; gap: 8px; margin-bottom: 8px; }
+    .row > * { flex: 1; }
+    button.primary { background: #238636; border-color: #238636; cursor: pointer; }
+    ul { list-style: none; padding: 0; margin: 0; }
+    li { padding: 8px 0; border-bottom: 1px solid #21262d; }
+    li:last-child { border-bottom: none; }
+    .sum { font-weight: 700; }
+    .tip { color: #8b949e; font-size: 13px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Daily Bill 日常账单</h1>
+
+    <div class="card">
+      <div class="row">
+        <input id="date" type="date" />
+        <select id="type">
+          <option value="支出">支出</option>
+          <option value="收入">收入</option>
+        </select>
+      </div>
+      <div class="row">
+        <input id="amount" type="number" placeholder="金额（元）" />
+        <input id="note" placeholder="备注" />
+      </div>
+      <button class="primary" id="addBtn">添加记录</button>
+      <div class="tip" style="margin-top:8px">数据保存在本机（localStorage）。</div>
+    </div>
+
+    <div class="card">
+      <div>总支出：<span class="sum" id="totalOut">0</span> 元</div>
+      <div>总收入：<span class="sum" id="totalIn">0</span> 元</div>
+      <div>净额：<span class="sum" id="net">0</span> 元</div>
+    </div>
+
+    <div class="card">
+      <ul id="list"></ul>
+    </div>
+  </div>
+
+  <script>
+    const dateEl = document.getElementById('date');
+    const typeEl = document.getElementById('type');
+    const amountEl = document.getElementById('amount');
+    const noteEl = document.getElementById('note');
+    const addBtn = document.getElementById('addBtn');
+    const list = document.getElementById('list');
+    const totalOut = document.getElementById('totalOut');
+    const totalIn = document.getElementById('totalIn');
+    const net = document.getElementById('net');
+
+    dateEl.value = new Date().toISOString().slice(0,10);
+    let records = JSON.parse(localStorage.getItem('daily-bill') || '[]');
+
+    function save() {
+      localStorage.setItem('daily-bill', JSON.stringify(records));
+      render();
+    }
+
+    function render() {
+      list.innerHTML = '';
+      let out = 0, inn = 0;
+      records.slice().reverse().forEach((r, idx) => {
+        const li = document.createElement('li');
+        li.textContent = `${r.date}｜${r.type}｜${r.amount}元｜${r.note}`;
+        list.appendChild(li);
+        if (r.type === '支出') out += Number(r.amount);
+        else inn += Number(r.amount);
+      });
+      totalOut.textContent = out;
+      totalIn.textContent = inn;
+      net.textContent = inn - out;
+    }
+
+    addBtn.onclick = () => {
+      const amount = Number(amountEl.value);
+      if (!amount || !noteEl.value.trim()) return;
+      records.push({
+        date: dateEl.value,
+        type: typeEl.value,
+        amount,
+        note: noteEl.value.trim()
+      });
+      save();
+      amountEl.value = '';
+      noteEl.value = '';
+    };
+
+    render();
+  </script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('sw.js').catch(()=>{});
+      });
+    }
+  </script>
+</body>
+</html>
